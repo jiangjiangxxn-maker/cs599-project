@@ -84,7 +84,7 @@ cd backend
 pip install -r requirements.txt
 ```
 
-### 2. 环境变量配置（⚠️ 不硬编码 API Key）
+### 2. 环境变量配置
 
 ```bash
 # 复制环境变量模板
