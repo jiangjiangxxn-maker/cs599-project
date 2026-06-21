@@ -1,0 +1,107 @@
+# ============================================================================
+# Career AI Platform - Production Docker Compose
+# For Beta deployment on single VPS with Caddy reverse proxy + HTTPS
+# ============================================================================
+
+services:
+  # --- Reverse Proxy + Frontend ---
+  caddy:
+    build:
+      context: ..
+      dockerfile: docker/Dockerfile.caddy
+    container_name: career-ai-caddy
+    ports:
+      - "80:80"
+      - "443:443"
+    environment:
+      - DOMAIN=${DOMAIN:-localhost}
+    volumes:
+      - caddy_data:/data
+      - caddy_config:/config
+    depends_on:
+      - backend
+    restart: unless-stopped
+    networks:
+      - career-ai-net
+
+  # --- Main Backend Service ---
+  backend:
+    build:
+      context: ..
+      dockerfile: docker/Dockerfile.backend
+    container_name: career-ai-backend
+    expose:
+      - "8000"
+    volumes:
+      - chromadb_data:/data/chromadb
+      - session_data:/data
+    environment:
+      - DEBUG=false
+      - HOST=0.0.0.0
+      - PORT=8000
+      - DEEPSEEK_API_KEY=${DEEPSEEK_API_KEY:-}
+      - QWEN_API_KEY=${QWEN_API_KEY:-}
+      - LANGFUSE_PUBLIC_KEY=${LANGFUSE_PUBLIC_KEY:-}
+      - LANGFUSE_SECRET_KEY=${LANGFUSE_SECRET_KEY:-}
+      - ENABLE_TRACING=${ENABLE_TRACING:-false}
+      - DOMAIN=${DOMAIN:-localhost}
+    depends_on:
+      - resume-parser-mcp
+      - campus-calendar-mcp
+      - tech-quiz-mcp
+    restart: unless-stopped
+    networks:
+      - career-ai-net
+
+  # --- MCP Servers ---
+  resume-parser-mcp:
+    build:
+      context: ..
+      dockerfile: docker/Dockerfile.mcp
+    container_name: career-ai-resume-parser
+    expose:
+      - "8001"
+    environment:
+      - MCP_SERVER_NAME=resume-parser
+      - MCP_SERVER_PORT=8001
+    restart: unless-stopped
+    networks:
+      - career-ai-net
+
+  campus-calendar-mcp:
+    build:
+      context: ..
+      dockerfile: docker/Dockerfile.mcp
+    container_name: career-ai-campus-calendar
+    expose:
+      - "8002"
+    environment:
+      - MCP_SERVER_NAME=campus-calendar
+      - MCP_SERVER_PORT=8002
+    restart: unless-stopped
+    networks:
+      - career-ai-net
+
+  tech-quiz-mcp:
+    build:
+      context: ..
+      dockerfile: docker/Dockerfile.mcp
+    container_name: career-ai-tech-quiz
+    expose:
+      - "8003"
+    environment:
+      - MCP_SERVER_NAME=tech-quiz
+      - MCP_SERVER_PORT=8003
+    restart: unless-stopped
+    networks:
+      - career-ai-net
+
+volumes:
+  chromadb_data:
+  session_data:
+  caddy_data:
+  caddy_config:
+
+networks:
+  career-ai-net:
+    driver: bridge

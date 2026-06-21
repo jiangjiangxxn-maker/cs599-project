@@ -1,0 +1,1215 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>应届生 AI 求职助手</title>
+    <script src="https://cdn.jsdelivr.net/npm/marked/marked.min.js"></script>
+    <style>
+        * { margin: 0; padding: 0; box-sizing: border-box; }
+        body {
+            font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            min-height: 100vh;
+        }
+        .app-container {
+            display: flex;
+            height: 100vh;
+            max-width: 1400px;
+            margin: 0 auto;
+            padding: 12px;
+            gap: 12px;
+        }
+
+        /* ========== Left Sidebar ========== */
+        .sidebar {
+            width: 280px;
+            min-width: 280px;
+            background: white;
+            border-radius: 16px;
+            box-shadow: 0 20px 60px rgba(0,0,0,0.15);
+            display: flex;
+            flex-direction: column;
+            overflow: hidden;
+        }
+        .sidebar-header {
+            padding: 16px;
+            border-bottom: 1px solid #e9ecef;
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+        }
+        .sidebar-header h2 {
+            font-size: 16px;
+            color: #495057;
+        }
+        .new-chat-btn {
+            padding: 6px 14px;
+            background: #667eea;
+            color: white;
+            border: none;
+            border-radius: 8px;
+            font-size: 13px;
+            cursor: pointer;
+            font-weight: 600;
+            transition: background 0.2s;
+            white-space: nowrap;
+        }
+        .new-chat-btn:hover { background: #5a67d8; }
+
+        /* ========== Status Bar ========== */
+        .status-bar {
+            padding: 10px 16px;
+            background: linear-gradient(90deg, #f0f4ff 0%, #e8f0fe 100%);
+            border-bottom: 1px solid #d0d9ff;
+            display: none;
+            align-items: center;
+            gap: 10px;
+            animation: statusPulse 2s ease-in-out infinite;
+        }
+        .status-bar.active { display: flex; }
+        @keyframes statusPulse {
+            0%, 100% { opacity: 1; }
+            50% { opacity: 0.85; }
+        }
+        .status-node {
+            font-size: 11px;
+            font-weight: 700;
+            color: #667eea;
+            background: rgba(102, 126, 234, 0.12);
+            padding: 3px 8px;
+            border-radius: 6px;
+            white-space: nowrap;
+        }
+        .status-message {
+            font-size: 13px;
+            color: #495057;
+            flex: 1;
+        }
+        .status-dot {
+            width: 6px;
+            height: 6px;
+            border-radius: 50%;
+            background: #667eea;
+            animation: dotBlink 1s ease-in-out infinite;
+        }
+        @keyframes dotBlink {
+            0%, 100% { opacity: 1; transform: scale(1); }
+            50% { opacity: 0.4; transform: scale(0.7); }
+        }
+
+        .session-list {
+            flex: 1;
+            overflow-y: auto;
+            padding: 8px;
+        }
+        .session-item {
+            padding: 10px 12px;
+            border-radius: 10px;
+            cursor: pointer;
+            margin-bottom: 4px;
+            transition: all 0.2s;
+            border: 1px solid transparent;
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+        }
+        .session-item:hover {
+            background: #f0f4ff;
+            border-color: #d0d9ff;
+        }
+        .session-item.active {
+            background: #667eea;
+            color: white;
+            border-color: #667eea;
+        }
+        .session-item .summary {
+            font-size: 13px;
+            flex: 1;
+            overflow: hidden;
+            text-overflow: ellipsis;
+            white-space: nowrap;
+        }
+        .session-item .msg-count {
+            font-size: 11px;
+            color: #adb5bd;
+            margin-left: 8px;
+            flex-shrink: 0;
+        }
+        .session-item.active .msg-count { color: rgba(255,255,255,0.7); }
+        .session-item .delete-btn {
+            background: none;
+            border: none;
+            color: #adb5bd;
+            cursor: pointer;
+            font-size: 14px;
+            padding: 2px 6px;
+            border-radius: 4px;
+            opacity: 0;
+            transition: all 0.2s;
+            flex-shrink: 0;
+        }
+        .session-item:hover .delete-btn { opacity: 0.6; }
+        .session-item .delete-btn:hover { opacity: 1; color: #e53e3e; background: #fff5f5; }
+        .session-item.active .delete-btn { color: rgba(255,255,255,0.7); }
+        .session-item.active .delete-btn:hover { color: white; background: rgba(255,255,255,0.2); }
+
+        .sidebar-footer {
+            padding: 12px 16px;
+            border-top: 1px solid #e9ecef;
+            font-size: 11px;
+            color: #adb5bd;
+            text-align: center;
+        }
+
+        /* ========== Right Chat Area ========== */
+        .chat-area {
+            flex: 1;
+            display: flex;
+            flex-direction: column;
+            background: white;
+            border-radius: 16px;
+            box-shadow: 0 20px 60px rgba(0,0,0,0.15);
+            overflow: hidden;
+        }
+        .chat-header {
+            background: #f8f9fa;
+            padding: 16px 20px;
+            border-bottom: 1px solid #e9ecef;
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+        }
+        .chat-header .title {
+            display: flex;
+            align-items: center;
+            gap: 8px;
+        }
+        .chat-header .title span { font-weight: 600; color: #495057; }
+        .status-dot {
+            display: inline-block;
+            width: 8px; height: 8px;
+            border-radius: 50%;
+            background: #48bb78;
+        }
+        .agent-select {
+            padding: 6px 12px;
+            border: 1px solid #dee2e6;
+            border-radius: 8px;
+            font-size: 13px;
+            background: white;
+            display: none;
+        }
+
+    .messages {
+            flex: 1;
+            padding: 20px;
+            overflow-y: auto;
+            display: flex;
+            flex-direction: column;
+            gap: 16px;
+            background: #fafbfc;
+        }
+        .message {
+            width: fit-content;
+            max-width: 80%;
+            padding: 16px;
+            border-radius: 12px;
+            line-height: 1.6;
+            font-size: 14px;
+            white-space: pre-wrap;
+            word-break: break-word;
+        }
+        .message.user {
+            align-self: flex-end;
+            background: #667eea;
+            color: white;
+            border-bottom-right-radius: 4px;
+        }
+        .message.agent {
+            align-self: flex-start;
+            background: white;
+            border: 1px solid #e9ecef;
+            border-bottom-left-radius: 4px;
+            color: #212529;
+        }
+        .message .label {
+            font-size: 11px;
+            font-weight: 600;
+            color: #adb5bd;
+            margin-bottom: 4px;
+        }
+        .message.user .label { color: rgba(255,255,255,0.7); }
+        .message .content { white-space: pre-wrap; }
+
+        .input-area {
+            padding: 12px 16px;
+            border-top: 1px solid #e9ecef;
+            background: white;
+        }
+        .file-info {
+            display: flex;
+            align-items: center;
+            gap: 6px;
+            padding: 6px 10px;
+            background: #f0f4ff;
+            border: 1px solid #d0d9ff;
+            border-radius: 8px;
+            font-size: 12px;
+            color: #495057;
+            margin-bottom: 8px;
+        }
+        .file-info .remove-file {
+            cursor: pointer;
+            color: #e53e3e;
+            font-size: 14px;
+            margin-left: auto;
+        }
+        .file-info .remove-file:hover { font-weight: bold; }
+        .textarea-wrapper {
+            position: relative;
+            display: flex;
+            gap: 10px;
+            align-items: flex-end;
+        }
+        .textarea-wrapper textarea {
+            flex: 1;
+            padding: 12px 14px;
+            padding-left: 40px;
+            border: 1px solid #dee2e6;
+            border-radius: 12px;
+            font-size: 14px;
+            resize: none;
+            outline: none;
+            font-family: inherit;
+            min-height: 80px;
+            max-height: 200px;
+            line-height: 1.5;
+        }
+        .textarea-wrapper textarea:focus { border-color: #667eea; }
+        .upload-inside-btn {
+            position: absolute;
+            left: 8px;
+            bottom: 8px;
+            width: 28px;
+            height: 28px;
+            background: #f0f4ff;
+            border: 1px solid #d0d9ff;
+            border-radius: 6px;
+            cursor: pointer;
+            font-size: 18px;
+            color: #667eea;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            transition: all 0.2s;
+            line-height: 1;
+        }
+        .upload-inside-btn:hover { background: #667eea; color: white; border-color: #667eea; }
+        .upload-inside-btn.uploading { opacity: 0.5; pointer-events: none; }
+        #fileInput { display: none; }
+        .send-btn {
+            padding: 12px 24px;
+            background: #667eea;
+            color: white;
+            border: none;
+            border-radius: 12px;
+            font-size: 14px;
+            cursor: pointer;
+            font-weight: 600;
+            transition: background 0.2s;
+            white-space: nowrap;
+            height: 80px;
+            flex-shrink: 0;
+        }
+        .send-btn:hover { background: #5a67d8; }
+        .send-btn:disabled { background: #a0aec0; cursor: not-allowed; }
+
+        .quick-actions {
+            display: flex;
+            gap: 8px;
+            padding: 10px 20px;
+            background: #f8f9fa;
+            flex-wrap: wrap;
+        }
+        .quick-btn {
+            padding: 6px 14px;
+            border: 1px solid #dee2e6;
+            border-radius: 16px;
+            background: white;
+            font-size: 12px;
+            cursor: pointer;
+            color: #495057;
+            transition: all 0.2s;
+        }
+        .quick-btn:hover { border-color: #667eea; color: #667eea; }
+
+        .typing-indicator {
+            align-self: flex-start;
+            display: flex;
+            gap: 4px;
+            padding: 12px 16px;
+            background: white;
+            border: 1px solid #e9ecef;
+            border-radius: 12px;
+            border-bottom-left-radius: 4px;
+        }
+        .typing-indicator span {
+            width: 8px; height: 8px;
+            background: #a0aec0;
+            border-radius: 50%;
+            animation: typing 1.4s infinite;
+        }
+        .typing-indicator span:nth-child(2) { animation-delay: 0.2s; }
+        .typing-indicator span:nth-child(3) { animation-delay: 0.4s; }
+        @keyframes typing {
+            0%, 60%, 100% { opacity: 0.3; transform: scale(0.8); }
+            30% { opacity: 1; transform: scale(1.2); }
+        }
+
+        .empty-state {
+            flex: 1;
+            display: none;
+            flex-direction: column;
+            align-items: center;
+            justify-content: center;
+            color: #a0aec0;
+            padding: 40px;
+            text-align: center;
+        }
+        .empty-state.visible { display: flex; }
+        .empty-state h1 { font-size: 2em; margin-bottom: 8px; color: #495057; }
+        .empty-state p { max-width: 500px; line-height: 1.8; }
+
+        /* Thinking indicator inside streaming message */
+        .thinking-indicator { display: flex; align-items: center; gap: 6px; padding: 4px 0; color: #667eea; font-size: 14px; animation: thinkingPulse 1.5s ease-in-out infinite; }
+        @keyframes thinkingPulse { 0%, 100% { opacity: 0.6; } 50% { opacity: 1; } }
+        .thinking-indicator span { font-size: 18px; }
+
+        /* Markdown content styling */
+        .message.agent .content h1, .message.agent .content h2, .message.agent .content h3 { margin: 12px 0 6px; }
+        .message.agent .content ul, .message.agent .content ol { padding-left: 20px; margin: 4px 0; }
+        .message.agent .content code { background: #f1f3f5; padding: 1px 4px; border-radius: 3px; font-size: 0.9em; }
+        .message.agent .content pre { background: #f1f3f5; padding: 10px; border-radius: 6px; overflow-x: auto; margin: 8px 0; }
+        .message.agent .content table { border-collapse: collapse; width: 100%; margin: 8px 0; }
+        .message.agent .content th, .message.agent .content td { border: 1px solid #dee2e6; padding: 6px 10px; font-size: 13px; }
+        .message.agent .content th { background: #f8f9fa; }
+
+        @media (max-width: 768px) {
+            .app-container { flex-direction: column; padding: 8px; }
+            .sidebar { width: 100%; min-width: unset; max-height: 200px; }
+            .message { max-width: 90%; }
+        }
+    </style>
+</head>
+<body>
+<div class="app-container">
+
+    <!-- ========== Left Sidebar ========== -->
+    <div class="sidebar">
+        <div class="sidebar-header">
+                <h2>对话历史</h2>
+                <button class="new-chat-btn" onclick="newChat()">+ 新对话</button>
+        </div>
+        <div class="session-list" id="sessionList">
+            <!-- Sessions loaded dynamically -->
+        </div>
+        <div class="sidebar-footer">Powered by LangGraph + MCP</div>
+    </div>
+
+    <!-- ========== Right Chat Area ========== -->
+    <div class="chat-area">
+        <div class="chat-header">
+            <div class="title">
+                <span class="status-dot"></span>
+                <span>🎯 AI 求职顾问</span>
+            </div>
+            <span style="font-size:12px;color:#adb5bd;">v0.1.0</span>
+        </div>
+
+        <div class="messages" id="messages">
+            <div class="empty-state visible" id="emptyState">
+                <h1>应届生 AI 求职助手</h1>
+                <p>
+                    我可以帮你：<br>
+                    <b>职业探索</b> / <b>岗位分析</b> / <b>简历优化</b><br>
+                    <b>面试模拟</b> / <b>学习规划</b>
+                </p>
+            </div>
+        </div>
+
+        <div class="quick-actions" id="quickActions">
+            <button class="quick-btn" onclick="showGuide('career')">职业探索</button>
+            <button class="quick-btn" onclick="showGuide('jd')">岗位分析</button>
+            <button class="quick-btn" onclick="showGuide('resume')">简历优化</button>
+            <button class="quick-btn" onclick="showGuide('interview')">面试模拟</button>
+            <button class="quick-btn" onclick="showGuide('plan')">学习规划</button>
+        </div>
+
+        <div class="input-area">
+            <div id="fileInfo" class="file-info" style="display:none;">
+                <span id="fileName"></span>
+                <span id="fileSize"></span>
+                <span class="remove-file" onclick="removeFile()">x</span>
+            </div>
+            <div class="textarea-wrapper">
+                <button class="upload-inside-btn" id="uploadBtn" onclick="document.getElementById('fileInput').click()" title="上传简历 (PDF/DOCX/TXT)">+</button>
+                <textarea id="userInput" placeholder="输入你的问题，或点击 + 上传简历文件..." rows="3" oninput="autoResize(this)"></textarea>
+                <input type="file" id="fileInput" accept=".pdf,.docx,.txt" onchange="handleFileUpload(event)">
+                <button class="send-btn" id="sendBtn" onclick="sendMessage()">发送</button>
+            </div>
+        </div>
+    </div>
+</div>
+
+<script>
+    let sessionId = '';
+    let isLoading = false;
+    let currentMessages = [];  // cache for current session display
+    let uploadedFileText = '';  // store uploaded resume text
+    let isInterviewMode = false;  // interview mode flag
+    let interviewSessionId = '';  // interview service session ID
+    // Auto-detect API base: relative path when served via reverse proxy, absolute when file://
+    const API_BASE = window.location.protocol === 'file:' ? 'http://localhost:8000' : '';
+    const INTERVIEW_API_BASE = 'http://localhost:8001';  // Interview service base URL
+
+    // ======================================================================
+    //  Session Management
+    // ======================================================================
+
+    async function loadSessions() {
+        try {
+            const resp = await fetch(API_BASE + '/sessions');
+            if (!resp.ok) return;
+            const data = await resp.json();
+            renderSessionList(data.sessions || []);
+        } catch (e) {
+            // Server not running
+        }
+    }
+
+    function renderSessionList(sessions) {
+        const el = document.getElementById('sessionList');
+        if (sessions.length === 0) {
+            el.innerHTML = '<div style="text-align:center;padding:20px;color:#adb5bd;font-size:13px;">暂无历史对话</div>';
+            return;
+        }
+        el.innerHTML = sessions.map(s => `
+            <div class="session-item ${s.session_id === sessionId ? 'active' : ''}"
+                 onclick="switchSession('${s.session_id}')">
+                <span class="summary">${escapeHtml(s.summary)}</span>
+                <span class="msg-count">${s.message_count}</span>
+                <button class="delete-btn" onclick="event.stopPropagation();deleteSession('${s.session_id}')">✕</button>
+            </div>
+        `).join('');
+    }
+
+    function escapeHtml(text) {
+        const d = document.createElement('div');
+        d.textContent = text;
+        return d.innerHTML;
+    }
+
+    function newChat() {
+        if (isLoading) return;
+        sessionId = '';
+        currentMessages = [];
+        uploadedFileText = '';
+        document.getElementById('fileInfo').style.display = 'none';
+        document.getElementById('messages').innerHTML = `
+            <div class="empty-state visible" id="emptyState">
+                <h1>应届生 AI 求职助手</h1>
+                <p>你好！选择上面的快捷按钮或直接输入你的问题</p>
+            </div>
+        `;
+        loadSessions();
+        document.getElementById('userInput').value = '';
+        document.getElementById('userInput').placeholder = '输入你的问题，或点击 + 上传简历文件...';
+        document.getElementById('userInput').focus();
+    }
+
+    async function switchSession(sid) {
+        if (isLoading || sid === sessionId) return;
+        sessionId = sid;
+        try {
+            const resp = await fetch(API_BASE + `/session/${sid}/messages`);
+            if (!resp.ok) return;
+            const data = await resp.json();
+            currentMessages = data.messages || [];
+            renderMessages(currentMessages);
+            loadSessions();
+        } catch (e) {
+            console.error('Failed to load session:', e);
+        }
+    }
+
+    async function deleteSession(sid) {
+        if (!confirm('确定删除此对话？')) return;
+        try {
+            await fetch(API_BASE + `/session/${sid}`, { method: 'DELETE' });
+            if (sid === sessionId) newChat();
+            else loadSessions();
+        } catch (e) {}
+    }
+
+    // ======================================================================
+    //  Message Rendering
+    // ======================================================================
+
+    function renderMessages(messages) {
+        const container = document.getElementById('messages');
+        container.innerHTML = '';
+        if (!messages || messages.length === 0) {
+            container.innerHTML = `<div class="empty-state visible" id="emptyState"><h1>应届生 AI 求职助手</h1><p>选择上面的快捷按钮开始</p></div>`;
+            return;
+        }
+        messages.forEach(msg => {
+            if (msg.role === 'user') {
+                addMessage('user', msg.content);
+            } else if (msg.role === 'assistant') {
+                addMessage('agent', msg.content, msg.result);
+            }
+        });
+        container.scrollTop = container.scrollHeight;
+    }
+
+    function addMessage(role, content, resultData = null) {
+        const messages = document.getElementById('messages');
+        // Remove empty state
+        const empty = document.getElementById('emptyState');
+        if (empty) empty.remove();
+
+        const div = document.createElement('div');
+        div.className = `message ${role}`;
+
+        const label = role === 'user' ? '你' : 'AI 求职顾问';
+        // Use marked.js for agent messages to render Markdown
+        let renderedContent = content;
+        if (role === 'agent' && typeof marked !== 'undefined') {
+            try {
+                renderedContent = marked.parse(content);
+            } catch (e) {
+                renderedContent = content;
+            }
+        }
+        let html = `<div class="label">${label}</div><div class="content">${renderedContent}</div>`;
+
+        if (resultData) {
+            html += formatResult(resultData);
+        }
+
+        div.innerHTML = html;
+        messages.appendChild(div);
+        messages.scrollTop = messages.scrollHeight;
+    }
+
+    function formatResult(data) {
+        const type = data.type || '';
+
+        if (type === 'career_feasibility_report') {
+            let html = '<div style="margin-top:8px;">';
+            if (data.positions) {
+                data.positions.forEach(p => {
+                    html += `<div style="margin:8px 0;"><b>${escapeHtml(p.name)}</b> (匹配度 ${(p.match_score * 100).toFixed(0)}%)</div>`;
+                    if (p.daily_tasks) {
+                        html += `<div style="font-size:13px;color:#495057;margin-left:8px;">日常工作: ${escapeHtml(p.daily_tasks.join('、'))}</div>`;
+                    }
+                });
+            }
+            if (data.skill_gaps && data.skill_gaps.length > 0) {
+                html += '<div style="margin-top:8px;"><b>技能差距:</b></div>';
+                data.skill_gaps.forEach(g => {
+                    const from = g.from || g.current_level || '入门';
+                    const to = g.to || g.required_level || '熟练';
+                    html += `<div style="font-size:13px;color:#495057;margin-left:8px;">- ${escapeHtml(g.skill)}需要从${from}提升到${to}</div>`;
+                });
+            }
+            html += '</div>';
+            return html;
+        }
+
+        if (type === 'jd_analysis_report') {
+            let html = `<div style="margin-top:8px;"><b>岗位分析 (难度: ${data.overall_difficulty})</b></div>`;
+            if (data.requirements) {
+                data.requirements.forEach(r => {
+                    const badge = r.category === 'hard_filter' ? '[硬性要求]' : r.category === 'nice_to_have' ? '[加分项]' : '[工作职责]';
+                    html += `<div style="margin:6px 0;font-size:13px;">${badge} ${escapeHtml(r.original)}<br><span style="color:#495057;margin-left:8px;">-> ${escapeHtml(r.translated)}</span></div>`;
+                });
+            }
+            return html;
+        }
+
+        if (type === 'resume_optimization') {
+            let html = '<div style="margin-top:8px;">';
+            // Diff-style comparison table
+            if (data.comparisons && data.comparisons.length > 0) {
+                html += '<div style="margin-bottom:8px;"><b>📊 前后对比</b></div>';
+                html += '<table style="width:100%;border-collapse:collapse;font-size:13px;">';
+                html += '<tr style="background:#f8f9fa;"><th style="padding:6px 8px;border:1px solid #e9ecef;text-align:left;width:50%;color:#e53e3e;">❌ 优化前</th><th style="padding:6px 8px;border:1px solid #e9ecef;text-align:left;width:50%;color:#38a169;">✅ 优化后</th></tr>';
+                data.comparisons.forEach(c => {
+                    html += `<tr><td style="padding:6px 8px;border:1px solid #e9ecef;background:#fff5f5;color:#c53030;">${escapeHtml(c.original)}</td>`;
+                    html += `<td style="padding:6px 8px;border:1px solid #e9ecef;background:#f0fff4;color:#276749;">${escapeHtml(c.optimized)}</td></tr>`;
+                });
+                html += '</table>';
+            }
+            if (data.ats_score) {
+                const atsColor = data.ats_score >= 70 ? '#38a169' : data.ats_score >= 50 ? '#d69e2e' : '#e53e3e';
+                html += `<div style="margin-top:10px;display:flex;align-items:center;gap:8px;">
+                    <span style="font-size:13px;font-weight:600;">ATS 评分:</span>
+                    <div style="flex:1;height:8px;background:#e9ecef;border-radius:4px;overflow:hidden;">
+                        <div style="width:${Math.min(data.ats_score, 100)}%;height:100%;background:${atsColor};border-radius:4px;transition:width 0.5s;"></div>
+                    </div>
+                    <span style="font-size:14px;font-weight:700;color:${atsColor};">${data.ats_score}/100</span>
+                </div>`;
+            }
+            if (data.keywords_matched && data.keywords_matched.length > 0) {
+                html += '<div style="margin-top:8px;font-size:13px;"><b>🔑 匹配关键词:</b> ';
+                data.keywords_matched.forEach(k => {
+                    html += `<span style="display:inline-block;padding:2px 6px;background:#ebf8ff;color:#2b6cb0;border-radius:4px;margin:2px;font-size:12px;">${escapeHtml(k)}</span>`;
+                });
+                html += '</div>';
+            }
+            if (data.suggestions) {
+                html += '<div style="margin-top:8px;padding:8px;background:#fffbeb;border-radius:8px;font-size:13px;">';
+                html += '<b>💡 改进建议:</b><br>';
+                data.suggestions.forEach(s => html += `• ${escapeHtml(s)}<br>`);
+                html += '</div>';
+            }
+            html += '</div>';
+            return html;
+        }
+
+        if (type === 'interview_simulation') {
+            const modeLabel = data.mode === 'technical' ? '技术面' : data.mode === 'hr' ? 'HR面' : '项目深挖';
+            let html = `<div style="margin-top:8px;"><b>面试模拟 (${modeLabel})</b></div>`;
+            if (data.qa) {
+                data.qa.forEach(q => {
+                    html += `<div style="margin:6px 0;font-size:13px;"><b>Q:</b> ${escapeHtml(q.question)}</div>`;
+                    if (q.score) html += `<div style="font-size:13px;">评分: ${q.score}/10</div>`;
+                    if (q.feedback) html += `<div style="font-size:13px;color:#495057;">${escapeHtml(q.feedback)}</div>`;
+                });
+            }
+            if (data.overall_score) html += `<div style="margin-top:6px;font-size:13px;">总分: ${data.overall_score}/10</div>`;
+            return html;
+        }
+
+        if (type === 'learning_plan') {
+            let html = `<div style="margin-top:8px;"><b>学习规划 (${data.duration_weeks}周)</b></div>`;
+            if (data.weekly_plan) {
+                data.weekly_plan.forEach(w => {
+                    html += `<div style="margin:4px 0;font-size:13px;">第${w.week}周: ${escapeHtml(w.topic)} (${w.hours}h)</div>`;
+                });
+            }
+            return html;
+        }
+
+        if (type === 'job_matching') {
+            let html = '<div style="margin-top:8px;"><b>推荐岗位</b></div>';
+            if (data.matched_positions) {
+                data.matched_positions.forEach(p => {
+                    html += `<div style="margin:4px 0;font-size:13px;">${escapeHtml(p.company)} - ${escapeHtml(p.position)} (匹配度 ${(p.match_score * 100).toFixed(0)}%)${p.days_left ? ' 还剩' + p.days_left + '天' : ''}</div>`;
+                });
+            }
+            return html;
+        }
+
+        // Fallback: show raw JSON
+        return '<pre style="font-size:12px;max-height:300px;overflow:auto;margin-top:8px;">' + escapeHtml(JSON.stringify(data, null, 2)) + '</pre>';
+    }
+
+    // ======================================================================
+    //  Chat Interaction
+    // ======================================================================
+
+    function autoResize(textarea) {
+        textarea.style.height = 'auto';
+        textarea.style.height = Math.min(textarea.scrollHeight, 200) + 'px';
+    }
+
+    function showTyping() {
+        const messages = document.getElementById('messages');
+        const empty = document.getElementById('emptyState');
+        if (empty) empty.remove();
+        const div = document.createElement('div');
+        div.className = 'typing-indicator';
+        div.id = 'typingIndicator';
+        div.innerHTML = '<span></span><span></span><span></span>';
+        messages.appendChild(div);
+        messages.scrollTop = messages.scrollHeight;
+    }
+
+    function hideTyping() {
+        const el = document.getElementById('typingIndicator');
+        if (el) el.remove();
+    }
+
+    // ======================================================================
+    //  Status Bar (SSE status events)
+    // ======================================================================
+
+    function showStatusBar(node, message) {
+        let bar = document.getElementById('statusBar');
+        if (!bar) {
+            bar = document.createElement('div');
+            bar.id = 'statusBar';
+            bar.className = 'status-bar';
+            bar.innerHTML = '<div class="status-dot"></div><div class="status-node" id="statusNode"></div><div class="status-message" id="statusMessage"></div>';
+            const chatArea = document.querySelector('.chat-area');
+            const messagesEl = document.getElementById('messages');
+            chatArea.insertBefore(bar, messagesEl);
+        }
+        bar.classList.add('active');
+        document.getElementById('statusNode').textContent = node;
+        document.getElementById('statusMessage').textContent = message;
+    }
+
+    function hideStatusBar() {
+        const bar = document.getElementById('statusBar');
+        if (bar) bar.classList.remove('active');
+    }
+
+    // ======================================================================
+    //  Streaming Message (SSE message chunks - typewriter effect)
+    // ======================================================================
+
+    function startStreamingMessage(statusText) {
+        const messages = document.getElementById('messages');
+        const empty = document.getElementById('emptyState');
+        if (empty) empty.remove();
+        const div = document.createElement('div');
+        div.className = 'message agent';
+        div.id = 'streamingMessage';
+        div.innerHTML = '<div class="label">AI 求职顾问</div><div class="content" id="streamingContent"><div class="thinking-indicator"><span>⏳</span> ' + (statusText || '思考中...') + '</div></div>';
+        messages.appendChild(div);
+        messages.scrollTop = messages.scrollHeight;
+    }
+
+    function appendMessageChunk(chunk) {
+        const content = document.getElementById('streamingContent');
+        if (!content) {
+            startStreamingMessage();
+            return appendMessageChunk(chunk);
+        }
+        // First real chunk: clear the thinking indicator
+        if (!content._hasData) {
+            content._hasData = true;
+            content.innerHTML = '';
+        }
+        if (!content._raw) content._raw = '';
+        content._raw += chunk;
+        if (typeof marked !== 'undefined') {
+            try { content.innerHTML = marked.parse(content._raw); } catch(e) { content.textContent = content._raw; }
+        } else {
+            content.textContent = content._raw;
+        }
+        const messages = document.getElementById('messages');
+        messages.scrollTop = messages.scrollHeight;
+    }
+
+    function updateStreamingStatus(text) {
+        const content = document.getElementById('streamingContent');
+        if (!content) return;
+        // Only update thinking text if no real data arrived yet
+        if (!content._hasData) {
+            content.innerHTML = '<div class="thinking-indicator"><span>⏳</span> ' + text + '</div>';
+        }
+    }
+
+    function finishStreamingMessage() {
+        const el = document.getElementById('streamingMessage');
+        if (el) el.id = '';
+    }
+
+    // Progress bar element (legacy fallback)
+    function addProgressBar() {
+        const messages = document.getElementById('messages');
+        const empty = document.getElementById('emptyState');
+        if (empty) empty.remove();
+        const div = document.createElement('div');
+        div.id = 'progressBar';
+        div.style.cssText = 'padding:12px;background:#f0f4ff;border-radius:8px;font-size:12px;color:#495057;max-width:80%;';
+        div.innerHTML = '<div style="display:flex;align-items:center;gap:8px;"><div class="spinner" style="width:16px;height:16px;border:2px solid #667eea;border-top-color:transparent;border-radius:50%;animation:spin 0.8s linear infinite;"></div><span id="progressText">正在处理...</span></div>';
+        messages.appendChild(div);
+        messages.scrollTop = messages.scrollHeight;
+        if (!document.getElementById('spinStyle')) {
+            const style = document.createElement('style');
+            style.id = 'spinStyle';
+            style.textContent = '@keyframes spin{to{transform:rotate(360deg)}}';
+            document.head.appendChild(style);
+        }
+    }
+
+    function updateProgress(text) {
+        const el = document.getElementById('progressText');
+        if (el) el.textContent = text;
+    }
+
+    function removeProgressBar() {
+        const el = document.getElementById('progressBar');
+        if (el) el.remove();
+    }
+
+    async function sendMessage() {
+        const input = document.getElementById('userInput');
+        let message = input.value.trim();
+        if (!message || isLoading) return;
+
+        if (uploadedFileText) {
+            message = message + '\n\n[简历内容]\n' + uploadedFileText;
+        }
+
+        input.value = '';
+        autoResize(input);
+        // Remove empty state before adding user message
+        const empty = document.getElementById('emptyState');
+        if (empty) empty.remove();
+        addMessage('user', message.substring(0, 500) + (message.length > 500 ? '...' : ''));
+        isLoading = true;
+        document.getElementById('sendBtn').disabled = true;
+        // Immediately show thinking bubble at the bottom
+        startStreamingMessage('正在分析你的问题...');
+
+        try {
+            // AbortController with 60s timeout to prevent infinite hang
+            const controller = new AbortController();
+            const timeoutId = setTimeout(() => controller.abort(), 60000);
+
+            // Use interview service if in interview mode, otherwise use main service
+            const apiUrl = isInterviewMode ? INTERVIEW_API_BASE : API_BASE;
+            const endpoint = isInterviewMode ? '/interview/answer' : '/chat/stream';
+            
+            let response;
+            if (isInterviewMode) {
+                // Interview service uses regular JSON response
+                const body = {
+                    session_id: interviewSessionId,
+                    answer: message
+                };
+                response = await fetch(apiUrl + endpoint, {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify(body),
+                    signal: controller.signal,
+                });
+                clearTimeout(timeoutId);
+                
+                if (!response.ok) {
+                    const errorText = await response.text();
+                    throw new Error(`HTTP ${response.status}: ${errorText || 'Server error'}`);
+                }
+                
+                const data = await response.json();
+                
+                // Display the response
+                finishStreamingMessage();
+                addMessage('agent', data.message, data.final_report || null);
+                
+                // Update interview session ID if this is the first answer
+                if (!interviewSessionId && data.session_id) {
+                    interviewSessionId = data.session_id;
+                }
+                
+                // Check if interview is still ongoing
+                if (!data.is_interviewing) {
+                    isInterviewMode = false;
+                }
+                
+                isLoading = false;
+                document.getElementById('sendBtn').disabled = false;
+                loadSessions();
+                return;
+            } else {
+                // Main service uses SSE streaming
+                response = await fetch(apiUrl + endpoint, {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify({
+                        message: message,
+                        session_id: sessionId,
+                    }),
+                    signal: controller.signal,
+                });
+                clearTimeout(timeoutId);
+            }
+
+            if (!response.ok) {
+                const errorText = await response.text();
+                throw new Error(`HTTP ${response.status}: ${errorText || 'Server error'}`);
+            }
+
+            const reader = response.body.getReader();
+            const decoder = new TextDecoder();
+            let buffer = '';
+
+            while (true) {
+                const { done, value } = await reader.read();
+                if (done) break;
+
+                buffer += decoder.decode(value, { stream: true });
+                const lines = buffer.split('\n');
+                buffer = lines.pop() || '';
+
+                for (const line of lines) {
+                    if (line.startsWith('data: ')) {
+                        const data = line.slice(6);
+                        if (data === '[DONE]') {
+                            removeProgressBar();
+                            isLoading = false;
+                            document.getElementById('sendBtn').disabled = false;
+                            loadSessions();
+                            continue;
+                        }
+                        try {
+                            const parsed = JSON.parse(data);
+                            if (parsed.type === 'status') {
+                                // Status event: update the thinking bubble text
+                                updateStreamingStatus(parsed.message);
+                            } else if (parsed.type === 'message') {
+                                // Message chunk: typewriter effect
+                                appendMessageChunk(parsed.chunk);
+                            } else if (parsed.type === 'done') {
+                                // Done event: finalize
+                                sessionId = parsed.session_id || sessionId;
+                                finishStreamingMessage();
+                                // If there's a suggested next agent, show hint
+                                if (parsed.next_suggested_agent) {
+                                    const hint = document.createElement('div');
+                                    hint.style.cssText = 'text-align:center;padding:8px;font-size:12px;color:#667eea;';
+                                    hint.textContent = '💡 系统建议: ' + parsed.next_suggested_agent.replace('_', ' ');
+                                    document.getElementById('messages').appendChild(hint);
+                                }
+                            } else if (parsed.type === 'progress') {
+                                // Legacy progress event
+                                updateProgress(parsed.message);
+                            } else if (parsed.type === 'result') {
+                                // Legacy result event (fallback)
+                                sessionId = parsed.session_id;
+                                let responseText = '';
+                                let resultData = null;
+                                if (parsed.response && parsed.response.result) {
+                                    resultData = parsed.response.result;
+                                    const typeMap = {
+                                        'career_feasibility_report': '根据你的背景，以下是岗位可行性分析：',
+                                        'jd_analysis_report': '以下是岗位分析结果：',
+                                        'resume_optimization': '以下是简历优化建议：',
+                                        'interview_simulation': '以下是面试模拟评价：',
+                                        'learning_plan': '以下是学习规划：',
+                                        'job_matching': '以下是岗位匹配结果：',
+                                    };
+                                    responseText = typeMap[resultData.type] || '分析完成';
+                                } else {
+                                    responseText = '处理完成';
+                                }
+                                addMessage('agent', responseText, resultData);
+                            }
+                        } catch (e) {}
+                    }
+                }
+            }
+        } catch (err) {
+            removeProgressBar();
+            addMessage('agent', `请求失败: ${err.message}. 请确保后端服务正在运行`);
+        } finally {
+            isLoading = false;
+            document.getElementById('sendBtn').disabled = false;
+        }
+    }
+
+    function addResumeMessage(filename, text) {
+        const messages = document.getElementById('messages');
+        const empty = document.getElementById('emptyState');
+        if (empty) empty.remove();
+
+        const div = document.createElement('div');
+        div.className = 'message user';
+        const preview = text.substring(0, 200);
+        const remaining = text.length - 200;
+        let html = `<div class="label">你</div><div class="content">上传了简历: ${escapeHtml(filename)}</div>`;
+        html += `<div style="margin-top:6px;font-size:12px;background:rgba(255,255,255,0.15);border-radius:8px;padding:8px;white-space:pre-wrap;max-height:300px;overflow-y:auto;">${escapeHtml(preview)}</div>`;
+        if (remaining > 0) {
+            html += `<div style="font-size:11px;opacity:0.7;margin-top:4px;">... 共 ${(text.length / 1000).toFixed(1)}K 字符，可继续输入优化要求</div>`;
+        }
+        div.innerHTML = html;
+        messages.appendChild(div);
+        messages.scrollTop = messages.scrollHeight;
+    }
+
+    // ======================================================================
+    //  Function Guides
+    // ======================================================================
+
+    const guideMessages = {
+        career: '我可以帮你分析适合你的职业方向。\n\n请输入你的专业、掌握的技术栈和感兴趣的方向，例如：\n"计算机专业，会 Python 和 Java，对后端开发感兴趣"',
+        jd: '我可以帮你解读招聘要求中的专业术语，区分哪些是硬性要求、哪些是加分项。\n\n请把岗位描述内容粘贴给我，例如：\n"熟悉高并发架构和分布式系统，掌握 Java 核心原理"',
+        resume: '我可以帮你把学术化的项目经历优化成企业认可的商业化表达。\n\n请描述你的项目经历，或点击左侧 + 上传简历文件。\n例如：\n"在学校做了一个分布式数据库的课程项目"',
+        interview: '我可以模拟技术面试、项目深挖或 HR 行为面试。\n\n请告诉我你的目标岗位和想面试的类型。\n例如：\n"模拟后端技术面试" 或 "HR 行为面试"',
+        plan: '我可以为你制定 8 周的技能提升路线图。\n\n请告诉我你的目标岗位和当前技术水平。\n例如：\n"后端开发，会 Java 基础，想系统学习 Spring 全家桶"',
+    };
+
+    const guidePlaceholders = {
+        career: '输入你的专业、技能和兴趣...',
+        jd: '粘贴岗位描述内容或链接...',
+        resume: '描述项目经历，或上传简历文件...',
+        interview: '输入目标岗位和面试类型...',
+        plan: '输入目标岗位和当前水平...',
+    };
+
+    function showGuide(type) {
+        if (isLoading) return;
+        currentMessages = [];
+
+        const messages = document.getElementById('messages');
+        const empty = document.getElementById('emptyState');
+        if (empty) empty.remove();
+
+        // Show title
+        const titleDiv = document.createElement('div');
+        titleDiv.className = 'message agent';
+        titleDiv.innerHTML = '<div class="label">AI 求职顾问</div><div class="content" style="font-size:20px;font-weight:bold;text-align:center;padding:10px 0;">' + typeNames[type] + '</div>';
+        messages.appendChild(titleDiv);
+
+        // Show guide message
+        const guideDiv = document.createElement('div');
+        guideDiv.className = 'message agent';
+        guideDiv.innerHTML = '<div class="label">AI 求职顾问</div><div class="content" style="white-space:pre-wrap;">' + escapeHtml(guideMessages[type]) + '</div>';
+        messages.appendChild(guideDiv);
+
+        // Update placeholder
+        document.getElementById('userInput').placeholder = guidePlaceholders[type];
+        document.getElementById('userInput').focus();
+        messages.scrollTop = messages.scrollHeight;
+
+        // Remove file state if any
+        uploadedFileText = '';
+        document.getElementById('fileInfo').style.display = 'none';
+
+        // Auto-start interview mode
+        if (type === 'interview') {
+            isInterviewMode = true;
+            // Start interview using the interview service
+            setTimeout(async () => {
+                try {
+                    const response = await fetch(INTERVIEW_API_BASE + '/interview/start', {
+                        method: 'POST',
+                        headers: { 'Content-Type': 'application/json' },
+                        body: JSON.stringify({mode: 'technical', position: 'backend'})
+                    });
+                    
+                    if (!response.ok) {
+                        throw new Error('Failed to start interview');
+                    }
+                    
+                    const data = await response.json();
+                    
+                    // Save interview session ID
+                    interviewSessionId = data.session_id;
+                    
+                    // Display the first question
+                    addMessage('agent', data.message, data.final_report || null);
+                    
+                } catch (err) {
+                    addMessage('agent', '启动面试失败: ' + err.message);
+                    isInterviewMode = false;
+                }
+            }, 500);
+        } else {
+            isInterviewMode = false;
+        }
+    }
+
+    const typeNames = {
+        career: '职业探索',
+        jd: '岗位分析',
+        resume: '简历优化',
+        interview: '面试模拟',
+        plan: '学习规划',
+    };
+
+    function sendQuick(text) {
+        document.getElementById('userInput').value = text;
+        sendMessage();
+    }
+
+    // ======================================================================
+    //  File Upload
+    // ======================================================================
+
+    async function handleFileUpload(event) {
+        const file = event.target.files[0];
+        if (!file) return;
+
+        if (file.size > 5 * 1024 * 1024) {
+            addMessage('agent', '文件大小超过 5MB 限制');
+            return;
+        }
+
+        const ext = file.name.split('.').pop().toLowerCase();
+        if (!['pdf', 'docx', 'txt'].includes(ext)) {
+            addMessage('agent', '仅支持 PDF、DOCX、TXT 格式的文件');
+            return;
+        }
+
+        const uploadBtn = document.getElementById('uploadBtn');
+        uploadBtn.classList.add('uploading');
+        uploadBtn.textContent = '...';
+
+        try {
+            const formData = new FormData();
+            formData.append('file', file);
+
+            const response = await fetch(API_BASE + '/upload-resume', {
+                method: 'POST',
+                body: formData,
+            });
+
+            if (!response.ok) {
+                const err = await response.json();
+                throw new Error(err.detail || 'Upload failed');
+            }
+
+            const data = await response.json();
+            uploadedFileText = data.text;
+
+            // Show resume content in chat as user message
+            addResumeMessage(data.filename, data.text);
+
+            // Show file info tag above input
+            document.getElementById('fileName').textContent = data.filename;
+            document.getElementById('fileSize').textContent = '(' + data.char_count + ' chars)';
+            document.getElementById('fileInfo').style.display = 'flex';
+
+            // Keep input empty so user can type extra requirements
+            document.getElementById('userInput').placeholder = '已上传简历，可输入额外的优化要求...';
+            document.getElementById('userInput').focus();
+
+        } catch (err) {
+            addMessage('agent', '文件上传失败: ' + err.message);
+        } finally {
+            uploadBtn.classList.remove('uploading');
+            uploadBtn.textContent = '+';
+            event.target.value = '';
+        }
+    }
+
+    function removeFile() {
+        uploadedFileText = '';
+        document.getElementById('fileInfo').style.display = 'none';
+        document.getElementById('userInput').value = '';
+    }
+
+    document.getElementById('userInput').addEventListener('keydown', (e) => {
+        if (e.key === 'Enter' && !e.shiftKey) {
+            e.preventDefault();
+            sendMessage();
+        }
+    });
+
+    // ======================================================================
+    //  Initial load
+    // ======================================================================
+    loadSessions();
+    // Poll for session updates every 5s
+    setInterval(loadSessions, 5000);
+</script>
+</body>
+</html>

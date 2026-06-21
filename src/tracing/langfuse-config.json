@@ -1,0 +1,30 @@
+{
+  "observability": {
+    "provider": "langfuse",
+    "enabled": false,
+    "environment": "development",
+    "release": "0.1.0"
+  },
+  "tracing": {
+    "sample_rate": 1.0,
+    "capture_input": true,
+    "capture_output": true,
+    "capture_metadata": true
+  },
+  "evaluation": {
+    "enabled": true,
+    "eval_frequency": "per_session",
+    "metrics": [
+      "token_usage",
+      "latency_ms",
+      "tool_call_success_rate",
+      "agent_completion_rate",
+      "user_satisfaction"
+    ]
+  },
+  "monitoring": {
+    "alert_on_error": false,
+    "error_threshold": 0.1,
+    "latency_threshold_ms": 10000
+  }
+}

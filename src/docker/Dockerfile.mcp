@@ -1,0 +1,18 @@
+# ============================================================================
+# Career AI Platform - MCP Server Dockerfile (Template)
+# ============================================================================
+
+FROM python:3.11-slim
+
+WORKDIR /app
+
+# Install MCP SDK
+RUN pip install --no-cache-dir mcp==1.0.0 httpx==0.27.2 pydantic==2.9.2
+
+# Copy MCP server code (mounted as volume in compose)
+# The specific server code is in backend/mcp-servers/<server-name>/
+
+EXPOSE 8001
+
+# Run MCP server (entrypoint defined by each server's main.py)
+CMD ["python", "main.py"]

@@ -1,0 +1,99 @@
+# ============================================================================
+# Career AI Platform - Docker Compose
+# ============================================================================
+
+services:
+  # --- Main Backend Service ---
+  backend:
+    build:
+      context: ..
+      dockerfile: docker/Dockerfile.backend
+    container_name: career-ai-backend
+    ports:
+      - "8000:8000"
+    volumes:
+      - ../backend:/app
+      - chromadb_data:/data/chromadb
+    environment:
+      - DEBUG=true
+      - HOST=0.0.0.0
+      - PORT=8000
+      - DEEPSEEK_API_KEY=${DEEPSEEK_API_KEY:-}
+      - OPENAI_API_KEY=${OPENAI_API_KEY:-}
+      - ANTHROPIC_API_KEY=${ANTHROPIC_API_KEY:-}
+      - LANGFUSE_PUBLIC_KEY=${LANGFUSE_PUBLIC_KEY:-}
+      - LANGFUSE_SECRET_KEY=${LANGFUSE_SECRET_KEY:-}
+      - ENABLE_TRACING=${ENABLE_TRACING:-false}
+    depends_on:
+      - resume-parser-mcp
+      - campus-calendar-mcp
+      - tech-quiz-mcp
+    restart: unless-stopped
+    networks:
+      - career-ai-net
+
+  # --- MCP Servers ---
+  resume-parser-mcp:
+    build:
+      context: ..
+      dockerfile: docker/Dockerfile.mcp
+    container_name: career-ai-resume-parser
+    ports:
+      - "8001:8001"
+    environment:
+      - MCP_SERVER_NAME=resume-parser
+      - MCP_SERVER_PORT=8001
+    volumes:
+      - ../backend/mcp-servers/resume-parser-mcp:/app
+    networks:
+      - career-ai-net
+
+  campus-calendar-mcp:
+    build:
+      context: ..
+      dockerfile: docker/Dockerfile.mcp
+    container_name: career-ai-campus-calendar
+    ports:
+      - "8002:8002"
+    environment:
+      - MCP_SERVER_NAME=campus-calendar
+      - MCP_SERVER_PORT=8002
+    volumes:
+      - ../backend/mcp-servers/campus-calendar-mcp:/app
+    networks:
+      - career-ai-net
+
+  tech-quiz-mcp:
+    build:
+      context: ..
+      dockerfile: docker/Dockerfile.mcp
+    container_name: career-ai-tech-quiz
+    ports:
+      - "8003:8003"
+    environment:
+      - MCP_SERVER_NAME=tech-quiz
+      - MCP_SERVER_PORT=8003
+    volumes:
+      - ../backend/mcp-servers/tech-quiz-mcp:/app
+    networks:
+      - career-ai-net
+
+  # --- Evaluation Sandbox ---
+  sandbox-evaluator:
+    build:
+      context: ..
+      dockerfile: docker/Dockerfile.sandbox
+    container_name: career-ai-sandbox
+    volumes:
+      - ../backend/tests:/sandbox/tests
+    profiles:
+      - evaluation
+    networks:
+      - career-ai-net
+
+volumes:
+  chromadb_data:
+
+networks:
+  career-ai-net:
+    driver: bridge

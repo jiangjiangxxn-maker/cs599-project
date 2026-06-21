@@ -1,0 +1,45 @@
+# Career AI Platform - Caddy Configuration
+# Automatic HTTPS via Let's Encrypt
+# Replace example.com with your actual domain
+
+# Production domain (uncomment and configure)
+# career-ai.example.com {
+#     reverse_proxy /api/* backend:8000
+#     reverse_proxy /chat/* backend:8000
+#     reverse_proxy /sessions backend:8000
+#     reverse_proxy /session/* backend:8000
+#     reverse_proxy /upload-resume backend:8000
+#     reverse_proxy /health backend:8000
+#     reverse_proxy /agents backend:8000
+#     root * /usr/share/caddy
+#     file_server
+# }
+
+# Development with local IP
+http://localhost:8080 {
+    root * /usr/share/caddy
+    file_server
+    
+    @api {
+        path /api/* /chat* /sessions* /session* /upload-resume* /health* /agents*
+    }
+    reverse_proxy @api backend:8000
+}
+
+# Production with domain (create a .env with DOMAIN=yourdomain.com)
+{$DOMAIN:localhost} {
+    root * /usr/share/caddy
+    file_server
+    
+    @api {
+        path /api/* /chat* /sessions* /session* /upload-resume* /health* /agents*
+    }
+    reverse_proxy @api backend:8000
+    
+    header / {
+        X-Content-Type-Options "nosniff"
+        X-Frame-Options "DENY"
+        X-XSS-Protection "1; mode=block"
+        Referrer-Policy "strict-origin-when-cross-origin"
+    }
+}

@@ -1,0 +1,16 @@
+# Career AI Platform - Caddy + Frontend
+# Serves static files and reverse proxies API
+
+FROM caddy:2-alpine
+
+# Copy Caddyfile
+COPY docker/Caddyfile /etc/caddy/Caddyfile
+
+# Copy frontend static files
+COPY frontend/ /usr/share/caddy/
+
+# Expose ports
+EXPOSE 80 443
+
+# Caddy automatically handles HTTPS
+CMD ["caddy", "run", "--config", "/etc/caddy/Caddyfile", "--adapter", "caddyfile"]
