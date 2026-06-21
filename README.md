@@ -61,11 +61,7 @@ src/
 │   ├── Dockerfile.mcp
 │   └── docker-compose.yml
 ├── tracing/                     # Langfuse 可观测性
-│   └── langfuse-config.json
-└── docs/                        # 文档
-    ├── 实验报告_LangGraph多智能体求职AI平台.md
-    ├── architecture-diagrams.md
-    └── BUG_FIX_REPORT_20240618.md
+   └── langfuse-config.json
 ```
 
 **核心模块职责**：
@@ -137,4 +133,4 @@ python -m pytest tests/benchmark/ -v
 - [ ] **Final** - 生产环境部署、性能优化、真实 LLM API 接入、更多 MCP Server
 
 **当前版本**：v0.1.0  
-**最后更新**：2024-06-21
+**最后更新**：2026-06-21
